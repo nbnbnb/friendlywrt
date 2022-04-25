@@ -23,6 +23,10 @@ rockchip_setup_interfaces()
 		ucidef_set_interface_wan 'eth0'
 		ucidef_set_interface "lan" device "wlan0" protocol "static" ipaddr "192.168.2.1"
 		;;
+	friendlyelec,nanopi-r5s)
+		ucidef_set_interface_wan 'eth0'
+		ucidef_set_interface "lan" device  "eth1 eth2" protocol "static" ipaddr "192.168.2.1"
+		;;
 	*)
 		ucidef_set_interface_lan 'eth0'
 		;;
@@ -47,6 +51,10 @@ rockchip_setup_macs()
 	friendlyarm,nanopi-r2s)
 		wan_mac=$(nanopi_r2s_generate_mac)
 		lan_mac=$(macaddr_add "$wan_mac" +1)
+		;;
+	friendlyelec,nanopi-r5s)
+		wan_mac=$(nanopi_r2s_generate_mac mmcblk2)
+		lan_mac=$(macaddr_add "$wan_mac" 1)
 		;;
 	esac
 
