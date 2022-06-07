@@ -3,11 +3,23 @@
 # ---------------------------------------------------------
 # put to /etc/uci-defaults/
 # see default_postinst() in lib/functions.sh
+. /lib/functions/uci-defaults.sh
+. /lib/functions/system.sh
+board=$(board_name)
+boardname="${board##*,}"
 
 function init_firewall() {
 	zone_name=$(uci -q get firewall.@zone[1].name)
 	[ "$zone_name" = "wan" ] || return 0
 
+	case "$boardname" in
+	nanopi-r5s)
+		uci set firewall.@defaults[0].flow_offloading='1'
+		;;
+	*)
+		uci set firewall.@defaults[0].flow_offloading='0'
+		;;
+	esac
 	uci set firewall.@zone[1].input='ACCEPT'
 	uci set firewall.@zone[1].output='ACCEPT'
 	uci set firewall.@zone[1].forward='ACCEPT'
@@ -18,6 +30,14 @@ function init_firewall() {
 function init_network() {
 	uci set network.globals.ula_prefix='fd00:ab:cd::/48'
 	uci commit network
+}
+
+function init_nft-qos() {
+	uci set nft-qos.default=default
+	uci set nft-qos.default.limit_enable='0'
+	uci set nft-qos.default.limit_mac_enable='0'
+	uci set nft-qos.default.priority_enable='0'
+	uci commit nft-qos
 }
 
 function disable_ipv6() {
@@ -113,7 +133,7 @@ function init_root_home() {
 
 function init_button() {
 	local CONF=/etc/triggerhappy/triggers.d/example.conf
-	grep "BTN_1" ${CONF} >/dev/null && return 0 
+	grep "BTN_1" ${CONF} >/dev/null && return 0
 	[ -f ${CONF} ] && echo 'BTN_1 1 /sbin/reboot' >> ${CONF}
 }
 
@@ -121,7 +141,6 @@ function clean_fstab() {
 	while uci -q del fstab.@mount[-1]; do true; done
 	uci commit fstab
 }
-
 
 # ---------------------------------------------------------
 # Refer: package/network/services/odhcpd/files/odhcpd.defaults
@@ -144,6 +163,7 @@ HOSTNAME="FriendlyWrt"
 
 if [ "${1,,}" = "all" ]; then
 	init_network
+	init_nft-qos
 	init_firewall
 	init_lcd2usb
 	init_system
