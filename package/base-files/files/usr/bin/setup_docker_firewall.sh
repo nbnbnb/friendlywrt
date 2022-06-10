@@ -11,7 +11,7 @@ setup_docker_firewall() {
 }
 
 check_docker_status() {
-	iptables -t nat -L V2RAY >/dev/null 2>&1; ret=$?
+	iptables -L DOCKER-MAN -n >/dev/null 2>&1; ret=$?
 	if [ $ret -eq 0 ]; then
 		t_status="docker-fw: loaded"
 	else
