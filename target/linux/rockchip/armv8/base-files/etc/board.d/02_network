@@ -28,17 +28,44 @@ rockchip_setup_interfaces()
 		ucidef_set_interface_wan 'eth0'
 		ucidef_set_interface "lan" device  "eth1 eth2" protocol "static" ipaddr "192.168.2.1"
 		;;
+	nanopi-r6s)
+		ucidef_set_interface_wan 'eth2'
+		ucidef_set_interface "lan" device  "eth1 eth0" protocol "static" ipaddr "192.168.2.1"
+		;;
 	*)
 		ucidef_set_interface_lan 'eth0'
 		;;
 	esac
 }
 
-nanopi_r2s_generate_mac()
+generate_mac_from_mmc_cid()
 {
-	local sd_hash=$(sha256sum /sys/class/block/$1/device/cid)
+	local mmc_dev=$1
+
+	local sd_hash=$(sha256sum /sys/class/block/$mmc_dev/device/cid)
 	local mac_base=$(macaddr_canonicalize "$(echo "${sd_hash}" | dd bs=1 count=12 2>/dev/null)")
 	echo "$(macaddr_unsetbit_mc "$(macaddr_setbit_la "${mac_base}")")"
+}
+
+nanopi_get_mac()
+{
+	local interface=$1
+	local eeprom_path="/sys/bus/i2c/devices/$2/eeprom"
+	local address
+
+	if [ -f "$eeprom_path" ]; then
+		address=$(get_mac_binary "$eeprom_path" 0xfa)
+		if [ "$interface" = "lan" ]; then
+			address=$(macaddr_setbit_la "$address")
+		fi
+	else
+		address=$(generate_mac_from_mmc_cid ${root_dev})
+		if [ "$interface" = "lan" ]; then
+			address=$(macaddr_add "$address" 1)
+		fi
+	fi
+
+	echo "$address"
 }
 
 rockchip_setup_macs()
@@ -53,17 +80,16 @@ rockchip_setup_macs()
 
 	case "$boardname" in
 	nanopi-r4s)
-		if [ -f /sys/bus/i2c/devices/2-0051/eeprom ]; then
-			wan_mac=$(get_mac_binary "/sys/bus/i2c/devices/2-0051/eeprom" 0xfa)
-			lan_mac=$(macaddr_setbit_la "$wan_mac")
-		else
-			wan_mac=$(nanopi_r2s_generate_mac "$root_dev")
-			lan_mac=$(macaddr_add "$wan_mac" 1)
-		fi
+		wan_mac=$(nanopi_get_mac wan 2-0051)
+		lan_mac=$(nanopi_get_mac lan 2-0051)
+		;;
+	nanopi-r6s)
+		wan_mac=$(nanopi_get_mac wan 6-0053)
+		lan_mac=$(nanopi_get_mac lan 6-0053)
 		;;
 	*)
 		if [ -f /sys/class/block/${root_dev}/device/cid ]; then
-			wan_mac=$(nanopi_r2s_generate_mac "$root_dev")
+			wan_mac=$(generate_mac_from_mmc_cid "$root_dev")
 			lan_mac=$(macaddr_add "$wan_mac" 1)
 		fi
 		;;
