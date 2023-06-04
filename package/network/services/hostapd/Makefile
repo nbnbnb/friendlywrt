@@ -428,7 +428,7 @@ define Package/hostapd-utils
   SUBMENU:=WirelessAPD
   TITLE:=IEEE 802.1x Authenticator (utils)
   URL:=http://hostap.epitest.fi/
-  DEPENDS:=@$(subst $(space),||,$(foreach pkg,$(HOSTAPD_PROVIDERS),PACKAGE_$(pkg)))
+  DEPENDS:=@$(subst $(space), ,$(foreach pkg,$(HOSTAPD_PROVIDERS),PACKAGE_$(pkg)))
   VARIANT:=*
 endef
 
@@ -441,7 +441,7 @@ define Package/wpa-cli
   SECTION:=net
   CATEGORY:=Network
   SUBMENU:=WirelessAPD
-  DEPENDS:=@$(subst $(space),||,$(foreach pkg,$(SUPPLICANT_PROVIDERS),PACKAGE_$(pkg)))
+  DEPENDS:=@$(subst $(space), ,$(foreach pkg,$(SUPPLICANT_PROVIDERS),PACKAGE_$(pkg)))
   TITLE:=WPA Supplicant command line control utility
   VARIANT:=*
 endef
